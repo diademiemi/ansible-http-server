@@ -1,0 +1,50 @@
+---
+# This workflow requires a GALAXY_API_KEY secret present in the GitHub
+# repository or organization.
+
+name: CI
+
+"on":
+  push:
+    branches:
+      - main
+    paths:
+      - "roles/template/**"
+  workflow_dispatch:
+
+jobs:
+  molecule:
+    runs-on: ubuntu-20.04
+    name: Molecule test "template" role
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # - name: "Free Disk Space."
+      #   uses: jlumbroso/free-disk-space@main
+      #   with:
+      #     tool-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies.
+        working-directory: roles/template
+        run: pip3 install -r requirements.txt
+
+      - name: Install Ansible dependencies.
+        run: ansible-galaxy install -r requirements.yml
+
+      - name: Install Ansible dependencies specific to role.
+        working-directory: roles/template
+        run: ansible-galaxy install -r requirements.yml
+
+      - name: Run molecule
+        working-directory: roles/template
+        run: "molecule test"
+
+...
