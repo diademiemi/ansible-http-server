@@ -3,6 +3,11 @@ I LOVE Ansible. A little too much? A little too much.
 I wanted to see if I could serve HTTP requests with the new Event Driven Ansible.
 Is this a good idea? Hell no. But I did it anyway.
 
+![Ansible HTTP Server](./img/demo.gif)
+###### Ignore the error, that's that it can't find the favicon.ico file.
+
+This is stupid... but it works-ish, kinda.
+
 ## How to use
 This definitely only works on Unix systems, not tested on Windows. Probably works in WSL. Why would you want to use this anyway? It's just a quirky experiment. Why are you seriously reading how to use this? You're never going to use this.
 
