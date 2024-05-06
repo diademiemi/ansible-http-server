@@ -2,7 +2,7 @@
   hosts: all
   gather_facts: false
   tasks:
-    - name: Shell command
+    - name: Echo the payload
       ansible.builtin.debug:
         msg: "{{ payload }}"
       changed_when: false
