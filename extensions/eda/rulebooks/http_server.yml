@@ -1,0 +1,14 @@
+- name: Example
+  hosts: all
+  gather_facts: true
+  sources:
+    - diademiemi.http_server.tcp_server:
+        port: 8080
+  rules:
+    - name: r1
+      condition: "true"
+      action:
+        run_playbook:
+          name: diademiemi.http_server.response
+          extra_vars:
+            payload: "{{ event.payload }}"

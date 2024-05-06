@@ -1,0 +1,62 @@
+- name: Respond to the request
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Shell command
+      ansible.builtin.debug:
+        msg: "{{ payload }}"
+      changed_when: false
+
+    - name: Parse the request
+      block:
+        - name: Extract the method
+          ansible.builtin.set_fact:
+            method: "{{ payload.split('\n').0.split(' ')[0] }}"
+
+        - name: Extract the path
+          ansible.builtin.set_fact:
+            path: "{{ payload.split('\n').0.split(' ')[1] }}"
+
+        - name: If path is /, set it to /index.html
+          ansible.builtin.set_fact:
+            path: "/index.html"
+          when: path == "/"
+
+        - name: Try to find the file
+          block:
+            - name: Slurp the file
+              ansible.builtin.slurp:
+                src: "{{ lookup('env', 'PWD') }}/files{{ path }}"
+              register: file
+              delegate_to: localhost
+
+            - name: Send response
+              diademiemi.http_server.http_response:
+                body: "{{ file.content | b64decode }}"
+                status: "200 OK"
+                content_type: "text/html"
+              when: file is defined
+
+          rescue:
+            - name: Send response
+              diademiemi.http_server.http_response:
+                body: "404 Not Found"
+                status: "404 Not Found"
+                content_type: "text/plain"
+
+      rescue:
+        - name: Send response
+          diademiemi.http_server.http_response:
+            body: "The server encountered an internal error and was unable to complete your request."
+            status: "500 Internal Server Error"
+            content_type: "text/plain"
+
+    # - name: Shell command
+    #   ansible.builtin.debug:
+    #     msg: "{{ address }}"
+    #   changed_when: false
+
+    # - name: Send the response
+    #   ansible.builtin.shell:
+    #     cmd: |
+    #       nc {{ address.0 }} {{ address.1 }} < 'echo -n "HTTP/1.1 200 OK\r\n\r\nTEST"'

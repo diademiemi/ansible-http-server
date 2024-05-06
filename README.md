@@ -1,48 +1,42 @@
-Ansible Collection - diademiemi.template
-========================================
-Documentation for the collection template.
+# ANSIBLE HTTP SERVER
+I LOVE Ansible. A little too much? A little too much.
+I wanted to see if I could serve HTTP requests with the new Event Driven Ansible.
+Is this a good idea? Hell no. But I did it anyway.
 
-Contents 
-========
+## How to use
+This definitely only works on Unix systems, not tested on Windows. Probably works in WSL. Why would you want to use this anyway? It's just a quirky experiment. Why are you seriously reading how to use this? You're never going to use this.
 
-Roles
-------
-Role | Description | CI Status
---- | --- | ---
-<!-- [diademiemi.template.EXAMPLE](./roles/template/) | Install EXAMPLE | [![Molecule test](https://github.com/diademiemi/ansible_collection_diademiemi.template/actions/workflows/ansible-role-EXAMPLE.yml/badge.svg)](https://github.com/diademiemi/ansible_collection_diademiemi.template/actions/workflows/ansible-role-EXAMPLE.yml) -->
+Since it serves files from the current working directory, you should clone this repo and run it from there.
+It also needs an inventory, which I've provided in this repository, but you can bring your own, only needs to have a `localhost` host. (I've only tested it with localhost, and if you're running this against a production host, you're doing it wrong)
 
-Click on the role to see the README for that role.  
-
-Collection Structure
---------------
-
-This collection makes use of my [Ansible Role Template repository](https://github.com/diademiemi/ansible_role_%74emplate.git).  The `add-role.sh` script downloads this Template and generates a new role with the name specified. If a `molecule/default/molecule.yml` file is present, it will be ran with GitHub Actions.  
-<!-- I use %74 here to encode to a "t" so it doesnt get recursively replaced. The .git causes a redirect so you end up at the right URL :)-->
-
-Usage:
+Install the Galaxy requirements
 ```bash
-export NEW_ROLE_NAME="new_role"
-./add-role.sh ${NEW_ROLE_NAME}
+ansible-galaxy collection install .  # Or diademiemi.http_server if you're not in the repo
 ```
 
-Using Template
---------------
-To use this template for a new role, run
-
-
+Install Ansible Rulebook
 ```bash
-export NEW_ROLE_NAME="NEW_NAME"
-export GITHUB_USER="diademiemi"
-export GALAXY_API_KEY="YOUR_API_KEY"
+pip3 install ansible-rulebook
 
-find . -type f -exec sed -i "s/diademiemi/${GITHUB_USER}/g" {} + # Do not run this more than once
-find . -type f -exec sed -i "s/template/${NEW_ROLE_NAME}/g" {} + # Do not run this more than once
-
-# Assumes repo is named ansible_role_${NEW_ROLE_NAME}
-gh secret set GALAXY_API_KEY -R ${GITHUB_USER}/ansible_collection_${GITHUB_USER}.${NEW_COLLECTION_NAME} -a actions -b ${GALAXY_API_KEY}
-
-# Remove this section from README.md
-sed -i "/Using Template/Q" README.md
+# OR
+pip3 install -r requirements.txt
 ```
 
-This is also provided as a script as `replace.sh`.  
+Run the Rulebook
+```bash
+ansible-rulebook -i inventories/local/hosts.yml -r diademiemi.http_server.http_server
+```
+
+You've now got a web server running on port 8080. Go to `http://localhost:8080` to see it in action! It serves the `index.html` file (or any requested file) in the `files` directory of your current working directory.
+
+## How it works
+
+This uses [Event Driven Ansible](https://www.ansible.com/blog/getting-started-with-event-driven-ansible/) to run a simple TCP socket server with a custom `event_source` plugin ([extensions/eda/plugins/event_source/tcp_server.py](extensions/eda/plugins/event_source/tcp_server.py)).This is called in the Rulebook ([extensions/eda/rulebooks/http_server.yml](extensions/eda/rulebooks/http_server.yml)). This plugin gets started through the Rulebook. When the Rulebook receives an event (A TCP connection from the plugin) it runs an Ansible Playbook.
+
+The Ansible Playbook ([playbooks/response.yml](playbooks/response.yml)) receives the request and parses it, finds a file in the `files` directory, calls a Module ([plugins/modules/http_response.py](plugins/modules/http_response.py)) which receives a file descriptor over a Unix socket (`/tmp/ansible_http.sock`) (basically, gets the TCP socket to the client in place of the original process) and sends a response as defined in the Ansible Playbook.
+
+Keep in mind, this barely works and is held together with hopes and prayers. It was a fun experiment though.
+
+## Why this is funny
+If you don't know Ansible, Ansible is a Configuration Management tool. You might think, that doesn't sound like a web server. You're right, it's not. But I made it one. Why? Because I can. And because I'm a little too obsessed with Ansible. Ansible is meant to configure remote hosts, and this new Event Driven Ansible framework is meant to react to outages and events in your infrastructure. But I made it serve HTTP requests. This is stupid.
+Ansible has an extensive plugin system, and I wanted to see how far I could push it. This is the result. Using the new event framework I could make a TCP server, and with a little bit of duct tape and a lot of hope, I made it serve HTTP requests.
